@@ -1,0 +1,101 @@
+version: "3.9"
+
+services:
+  frontend:
+    container_name: godigital-front
+    build:
+      context: ./goDigital
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./goDigital/.env
+    command: npm run dev
+    depends_on:
+      - backend
+      - imap
+    networks:
+      - godigital-net
+
+  backend:
+    container_name: godigital-back
+    build:
+      context: ./GoDigitalBack
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./GoDigitalBack/:/app
+      - /app/node_modules
+    env_file:
+      - ./GoDigitalBack/.env
+    command: npm run dev
+    depends_on:
+      - mongodb
+    networks:
+      - godigital-net
+
+  imap:
+    container_name: thradex-imap
+    build:
+      context: ./imap
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./imap/.env
+    volumes:
+      - ./imap/:/app
+    command: python run_api.py
+    networks:
+      - godigital-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: godigital-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./goDigital/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - godigital-net
+
+  agent:
+    container_name: godigital-agent
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./agent:/app
+    env_file:
+      - ./agent/.env
+    command: uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+    networks:
+      - godigital-net
+
+  mongodb:
+    image: mongo:6.0
+    container_name: godigital-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: godigitaldb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - godigital-net
+
+volumes:
+  mongo_data:
+
+networks:
+  godigital-net:
+    driver: bridge

@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pymongo
+pandas
+imapclient
+pyzmail36
+python-dotenv
+requests
+python-multipart
+tqdm
+pydantic
